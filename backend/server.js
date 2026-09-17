@@ -6,6 +6,8 @@ const connectDB = require("./config/db");
 
 const assetRoutes = require("./routes/assetRoutes");
 
+const securityEventRoutes = require("./routes/securityEventRoutes");
+
 const app = express();
 
 // Connect to MongoDB
@@ -24,6 +26,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/assets", assetRoutes);
+app.use("/api/security-events", securityEventRoutes);
 
 // Server
 const PORT = process.env.PORT || 5000;
