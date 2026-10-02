@@ -2,23 +2,23 @@ const express = require("express");
 
 const {
     getSecurityEvents,
-    getSecurityEventById,
+    getSecurityEvent,
     createSecurityEvent,
-    deleteSecurityEvent
+    deleteSecurityEventController
 } = require("../controllers/securityEventController");
 
 const router = express.Router();
 
-// GET all security events
+// Get all security events
 router.get("/", getSecurityEvents);
 
-// GET single security event
-router.get("/:id", getSecurityEventById);
+// Get single security event
+router.get("/:id", getSecurityEvent);
 
-// CREATE security event
+// Create security event
 router.post("/", createSecurityEvent);
 
-// DELETE security event
-router.delete("/:id", deleteSecurityEvent);
+// Delete security event
+router.delete("/:id", deleteSecurityEventController);
 
 module.exports = router;

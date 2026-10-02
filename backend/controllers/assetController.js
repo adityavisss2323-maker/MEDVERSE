@@ -1,30 +1,36 @@
-const Asset = require("../models/Asset");
+const {
+    findAllAssets,
+    findAssetById,
+    createNewAsset,
+    updateExistingAsset,
+    deleteExistingAsset,
+    changeAssetStatus
+} = require("../services/assetService");
 
-// GET all assets
+const { mapAsset, mapAssets } = require("../services/assetMapper");
+
 const getAssets = async (req, res) => {
     try {
-        const assets = await Asset.find().sort({ createdAt: -1 });
+        const assets = await findAllAssets();
 
-        res.status(200).json({
+        res.json({
             success: true,
             count: assets.length,
-            data: assets
+            data: mapAssets(assets)
         });
-
     } catch (error) {
+        console.error("Get Assets Error:", error);
+
         res.status(500).json({
             success: false,
-            message: "Failed to fetch assets",
-            error: error.message
+            message: "Failed to fetch assets"
         });
     }
 };
 
-
-// GET single asset
-const getAssetById = async (req, res) => {
+const getAsset = async (req, res) => {
     try {
-        const asset = await Asset.findById(req.params.id);
+        const asset = await findAssetById(req.params.id);
 
         if (!asset) {
             return res.status(404).json({
@@ -33,34 +39,33 @@ const getAssetById = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
-            data: asset
+            data: mapAsset(asset)
         });
-
     } catch (error) {
+        console.error("Get Asset Error:", error);
+
         res.status(500).json({
             success: false,
-            message: "Failed to fetch asset",
-            error: error.message
+            message: "Failed to fetch asset"
         });
     }
 };
 
-
-// CREATE asset
 const createAsset = async (req, res) => {
     try {
-        const asset = await Asset.create(req.body);
+        const asset = await createNewAsset(req.body);
 
         res.status(201).json({
             success: true,
             message: "Asset created successfully",
-            data: asset
+            data: mapAsset(asset)
         });
-
     } catch (error) {
-        res.status(400).json({
+        console.error("Create Asset Error:", error);
+
+        res.status(500).json({
             success: false,
             message: "Failed to create asset",
             error: error.message
@@ -68,17 +73,11 @@ const createAsset = async (req, res) => {
     }
 };
 
-
-// UPDATE asset
 const updateAsset = async (req, res) => {
     try {
-        const asset = await Asset.findByIdAndUpdate(
+        const asset = await updateExistingAsset(
             req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true
-            }
+            req.body
         );
 
         if (!asset) {
@@ -88,14 +87,15 @@ const updateAsset = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             message: "Asset updated successfully",
-            data: asset
+            data: mapAsset(asset)
         });
-
     } catch (error) {
-        res.status(400).json({
+        console.error("Update Asset Error:", error);
+
+        res.status(500).json({
             success: false,
             message: "Failed to update asset",
             error: error.message
@@ -103,25 +103,24 @@ const updateAsset = async (req, res) => {
     }
 };
 
-
-// DELETE asset
 const deleteAsset = async (req, res) => {
     try {
-        const asset = await Asset.findByIdAndDelete(req.params.id);
+        const deleted = await deleteExistingAsset(req.params.id);
 
-        if (!asset) {
+        if (!deleted) {
             return res.status(404).json({
                 success: false,
                 message: "Asset not found"
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             message: "Asset deleted successfully"
         });
-
     } catch (error) {
+        console.error("Delete Asset Error:", error);
+
         res.status(500).json({
             success: false,
             message: "Failed to delete asset",
@@ -130,22 +129,20 @@ const deleteAsset = async (req, res) => {
     }
 };
 
-
-// UPDATE asset status
 const updateAssetStatus = async (req, res) => {
     try {
         const { status } = req.body;
 
-        const asset = await Asset.findByIdAndUpdate(
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: "Status is required"
+            });
+        }
+
+        const asset = await changeAssetStatus(
             req.params.id,
-            {
-                status,
-                lastSeen: new Date()
-            },
-            {
-                new: true,
-                runValidators: true
-            }
+            status
         );
 
         if (!asset) {
@@ -155,14 +152,15 @@ const updateAssetStatus = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             message: "Asset status updated successfully",
-            data: asset
+            data: mapAsset(asset)
         });
-
     } catch (error) {
-        res.status(400).json({
+        console.error("Update Asset Status Error:", error);
+
+        res.status(500).json({
             success: false,
             message: "Failed to update asset status",
             error: error.message
@@ -170,10 +168,9 @@ const updateAssetStatus = async (req, res) => {
     }
 };
 
-
 module.exports = {
     getAssets,
-    getAssetById,
+    getAsset,
     createAsset,
     updateAsset,
     deleteAsset,

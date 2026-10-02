@@ -1,33 +1,32 @@
-const SecurityEvent = require("../models/SecurityEvent");
+const {
+    findAllSecurityEvents,
+    findSecurityEventById,
+    createNewSecurityEvent,
+    deleteSecurityEvent
+} = require("../services/securityEventService");
 
-// GET all security events
 const getSecurityEvents = async (req, res) => {
     try {
-        const events = await SecurityEvent.find()
-            .populate("asset", "name type ipAddress status riskLevel")
-            .sort({ timestamp: -1 });
+        const events = await findAllSecurityEvents();
 
-        res.status(200).json({
+        res.json({
             success: true,
             count: events.length,
             data: events
         });
-
     } catch (error) {
+        console.error("Get Security Events Error:", error);
+
         res.status(500).json({
             success: false,
-            message: "Failed to fetch security events",
-            error: error.message
+            message: "Failed to fetch security events"
         });
     }
 };
 
-
-// GET single security event
-const getSecurityEventById = async (req, res) => {
+const getSecurityEvent = async (req, res) => {
     try {
-        const event = await SecurityEvent.findById(req.params.id)
-            .populate("asset", "name type ipAddress status riskLevel");
+        const event = await findSecurityEventById(req.params.id);
 
         if (!event) {
             return res.status(404).json({
@@ -36,37 +35,33 @@ const getSecurityEventById = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             data: event
         });
-
     } catch (error) {
+        console.error("Get Security Event Error:", error);
+
         res.status(500).json({
             success: false,
-            message: "Failed to fetch security event",
-            error: error.message
+            message: "Failed to fetch security event"
         });
     }
 };
 
-
-// CREATE security event
 const createSecurityEvent = async (req, res) => {
     try {
-        const event = await SecurityEvent.create(req.body);
-
-        const populatedEvent = await SecurityEvent.findById(event._id)
-            .populate("asset", "name type ipAddress status riskLevel");
+        const event = await createNewSecurityEvent(req.body);
 
         res.status(201).json({
             success: true,
             message: "Security event created successfully",
-            data: populatedEvent
+            data: event
         });
-
     } catch (error) {
-        res.status(400).json({
+        console.error("Create Security Event Error:", error);
+
+        res.status(500).json({
             success: false,
             message: "Failed to create security event",
             error: error.message
@@ -74,25 +69,24 @@ const createSecurityEvent = async (req, res) => {
     }
 };
 
-
-// DELETE security event
-const deleteSecurityEvent = async (req, res) => {
+const deleteSecurityEventController = async (req, res) => {
     try {
-        const event = await SecurityEvent.findByIdAndDelete(req.params.id);
+        const deleted = await deleteSecurityEvent(req.params.id);
 
-        if (!event) {
+        if (!deleted) {
             return res.status(404).json({
                 success: false,
                 message: "Security event not found"
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             message: "Security event deleted successfully"
         });
-
     } catch (error) {
+        console.error("Delete Security Event Error:", error);
+
         res.status(500).json({
             success: false,
             message: "Failed to delete security event",
@@ -101,10 +95,9 @@ const deleteSecurityEvent = async (req, res) => {
     }
 };
 
-
 module.exports = {
     getSecurityEvents,
-    getSecurityEventById,
+    getSecurityEvent,
     createSecurityEvent,
-    deleteSecurityEvent
+    deleteSecurityEventController
 };

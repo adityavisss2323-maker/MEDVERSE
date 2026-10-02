@@ -2,7 +2,7 @@ const express = require("express");
 
 const {
     getAssets,
-    getAssetById,
+    getAsset,
     createAsset,
     updateAsset,
     deleteAsset,
@@ -11,16 +11,22 @@ const {
 
 const router = express.Router();
 
+// Get all assets
 router.get("/", getAssets);
 
-router.get("/:id", getAssetById);
+// Get single asset
+router.get("/:id", getAsset);
 
+// Create asset
 router.post("/", createAsset);
 
+// Update asset
 router.put("/:id", updateAsset);
 
-router.delete("/:id", deleteAsset);
-
+// Update asset status
 router.patch("/:id/status", updateAssetStatus);
+
+// Delete asset
+router.delete("/:id", deleteAsset);
 
 module.exports = router;
