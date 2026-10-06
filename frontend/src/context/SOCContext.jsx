@@ -212,16 +212,9 @@ export function SOCProvider({ children }) {
         );
 
       } catch (error) {
-
-        console.error(
-          "SOC Context API Error:",
-          error
-        );
-
+        console.info("SOC Context: Operating with local dataset fallback.");
       } finally {
-
         setLoading(false);
-
       }
     };
 

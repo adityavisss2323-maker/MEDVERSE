@@ -90,20 +90,38 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/v1/reports", reportRoutes);
 
 console.log("Cyber DNA routes loaded");
+
+// Global 404 Handler
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `API endpoint '${req.originalUrl}' not found.`
+    });
+});
+
+// Global Centralized Error Handler Middleware
+app.use((err, req, res, next) => {
+    console.error("Backend Error:", err.stack || err.message);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || "Internal Server Error"
+    });
+});
+
 // Server
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
         await testConnection();
-
-        app.listen(PORT, () => {
-            console.log(`MED-VERSE Backend running on http://localhost:${PORT}`);
-        });
     } catch (error) {
-        console.error("Server startup failed:", error.message);
-        process.exit(1);
+        console.warn("⚠️ MySQL Connection Notice:", error.message);
+        console.warn("⚠️ Backend is running, but database features require a running MySQL database.");
     }
+
+    app.listen(PORT, () => {
+        console.log(`MED-VERSE Backend running on http://localhost:${PORT}`);
+    });
 };
 
 startServer();

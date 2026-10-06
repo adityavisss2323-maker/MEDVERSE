@@ -9,33 +9,49 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  CheckCircle2,
   AlertCircle,
   ArrowRight,
   KeyRound,
+  BadgeCheck,
+  Briefcase,
+  Phone,
+  FileSpreadsheet
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { ROLES, DEPARTMENTS } from "../types";
+import { OTPModal } from "../components/auth/OTPModal";
+import { ForgotPasswordModal } from "../components/auth/ForgotPasswordModal";
 
 export default function AuthPage() {
-  const { login, register, loginAsPreset } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Tab mode: 'login' or 'register'
   const isRegisterPage = location.pathname === "/register";
   const [activeTab, setActiveTab] = useState(isRegisterPage ? "register" : "login");
 
-  // Form states - Pre-filled with default authorized credentials for fast authentication
-  const [name, setName] = useState("");
+  // Form states
   const [email, setEmail] = useState("sarah.jenkins@medverse.hospital");
   const [password, setPassword] = useState("medverse2026!");
-  const [role, setRole] = useState("SOC Lead Analyst");
-  const [department, setDepartment] = useState("Emergency Operations");
+  const [role, setRole] = useState(ROLES.SOC_LEAD);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  
+
+  // Register extra fields
+  const [fullName, setFullName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [department, setDepartment] = useState("Cybersecurity");
+  const [jobTitle, setJobTitle] = useState("Senior Security Analyst");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Modals & States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  
+  const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   // Password Strength Calculation
   const getPasswordStrength = (pass) => {
@@ -49,7 +65,7 @@ export default function AuthPage() {
     if (score <= 1) return { score: 25, label: "Weak", color: "#ef4444" };
     if (score === 2) return { score: 50, label: "Moderate", color: "#f59e0b" };
     if (score === 3) return { score: 75, label: "Strong", color: "#06b6d4" };
-    return { score: 100, label: "Cyber Secure", color: "#10b981" };
+    return { score: 100, label: "Enterprise Secure", color: "#10b981" };
   };
 
   const strength = getPasswordStrength(password);
@@ -57,57 +73,76 @@ export default function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setAuthNotice("");
 
     if (!email || !password) {
-      setErrorMsg("Please provide both email address and password.");
+      setErrorMsg("Please provide your hospital work email address and password.");
       return;
     }
 
-    if (activeTab === "register" && !name) {
-      setErrorMsg("Please enter your full name for SOC registration.");
-      return;
+    if (activeTab === "register") {
+      if (!fullName) {
+        setErrorMsg("Please enter your full name.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg("Passwords do not match.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
       if (activeTab === "login") {
         await login(email, password, role);
+        navigate("/dashboard");
       } else {
-        await register({ name, email, password, role, department });
+        // Register flow
+        const result = await register({
+          name: fullName,
+          email,
+          password,
+          role,
+          department,
+          employeeId,
+          jobTitle,
+          phone: phoneNumber
+        });
+
+        if (result?.requiresAuthorization) {
+          setAuthNotice("Your account has been created and requires authorization.");
+          setIsOTPModalOpen(true);
+        } else {
+          navigate("/dashboard");
+        }
       }
-      navigate("/dashboard");
     } catch (err) {
-      setErrorMsg("Authentication failed. Please verify your credentials.");
+      setErrorMsg(err.message || "Authentication failed. Please verify credentials.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      {/* BACKGROUND PARTICLES & GLOW EFFECT */}
-      <div className="auth-glow-bg">
-        <div className="glow-circle cyan"></div>
-        <div className="glow-circle teal"></div>
-      </div>
-
-      <div className="auth-card-container">
+    <div className="auth-page enterprise-auth">
+      <div className="auth-card-container minimal-enterprise">
         {/* BRANDING HEADER */}
         <div className="auth-brand-header">
-          <div className="brand-logo">
-            <Shield className="brand-icon" size={28} />
+          <div className="brand-logo minimal">
+            <Shield className="brand-icon" size={26} />
           </div>
-          <h1>MED-VERSE</h1>
+          <h1 className="brand-title">MED-VERSE</h1>
           <p className="auth-subtitle">Hospital Cyber Digital Twin & SOC Portal</p>
         </div>
 
         {/* TAB SWITCHER */}
-        <div className="auth-tabs">
+        <div className="auth-tabs minimal">
           <button
             className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
             onClick={() => {
               setActiveTab("login");
               setErrorMsg("");
+              setAuthNotice("");
             }}
           >
             <KeyRound size={15} />
@@ -119,6 +154,7 @@ export default function AuthPage() {
             onClick={() => {
               setActiveTab("register");
               setErrorMsg("");
+              setAuthNotice("");
             }}
           >
             <User size={15} />
@@ -126,30 +162,99 @@ export default function AuthPage() {
           </button>
         </div>
 
-        {/* ERROR ALERT */}
+        {/* MESSAGES */}
         {errorMsg && (
           <div className="auth-error-banner">
-            <AlertCircle size={16} />
+            <AlertCircle size={15} />
             <span>{errorMsg}</span>
           </div>
         )}
 
+        {authNotice && (
+          <div className="auth-notice-banner">
+            <BadgeCheck size={16} className="text-cyan" />
+            <span>{authNotice}</span>
+          </div>
+        )}
+
         {/* AUTH FORM */}
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form enterprise">
           {activeTab === "register" && (
-            <div className="auth-input-group">
-              <label>Full Name</label>
-              <div className="input-wrapper">
-                <User size={16} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="e.g. Dr. Sarah Jenkins"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+            <>
+              <div className="auth-input-group">
+                <label>Full Name</label>
+                <div className="input-wrapper">
+                  <User size={16} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Dr. Krishna Gandhi"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="auth-form-row">
+                <div className="auth-input-group">
+                  <label>Employee ID</label>
+                  <div className="input-wrapper">
+                    <FileSpreadsheet size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="EMP-9021"
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-input-group">
+                  <label>Department</label>
+                  <div className="input-wrapper">
+                    <Building size={16} className="input-icon" />
+                    <select
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                    >
+                      {DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="auth-form-row">
+                <div className="auth-input-group">
+                  <label>Job Title</label>
+                  <div className="input-wrapper">
+                    <Briefcase size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Senior Security Analyst"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-input-group">
+                  <label>Phone Number</label>
+                  <div className="input-wrapper">
+                    <Phone size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="+1 (555) 019-2831"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           <div className="auth-input-group">
@@ -186,7 +291,6 @@ export default function AuthPage() {
               </button>
             </div>
 
-            {/* PASSWORD STRENGTH BAR */}
             {password && activeTab === "register" && (
               <div className="strength-bar-container">
                 <div className="strength-track">
@@ -194,7 +298,7 @@ export default function AuthPage() {
                     className="strength-fill"
                     style={{
                       width: `${strength.score}%`,
-                      backgroundColor: strength.color,
+                      backgroundColor: strength.color
                     }}
                   ></div>
                 </div>
@@ -205,119 +309,91 @@ export default function AuthPage() {
             )}
           </div>
 
-          <div className="auth-form-row">
+          {activeTab === "register" && (
             <div className="auth-input-group">
-              <label>Assigned SOC Role</label>
+              <label>Confirm Password</label>
               <div className="input-wrapper">
-                <ShieldCheck size={16} className="input-icon" />
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="SOC Lead Analyst">🛡️ SOC Lead Analyst</option>
-                  <option value="Hospital CISO & Executive Director">🏥 Hospital CISO & Executive</option>
-                  <option value="IT Security Administrator">💻 IT Security Admin</option>
-                  <option value="Emergency MD / Clinical Staff">🚑 Emergency MD Staff</option>
-                </select>
+                <Lock size={16} className="input-icon" />
+                <input
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
               </div>
             </div>
+          )}
 
-            {activeTab === "register" && (
-              <div className="auth-input-group">
-                <label>Department Wing</label>
-                <div className="input-wrapper">
-                  <Building size={16} className="input-icon" />
-                  <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-                    <option value="Emergency Operations">Emergency Dept</option>
-                    <option value="Administration & EHR">Administration Wing</option>
-                    <option value="ICU & Critical Care">ICU IoMT Wing</option>
-                    <option value="Radiology & Imaging">Radiology Subnet</option>
-                  </select>
-                </div>
-              </div>
-            )}
+          <div className="auth-input-group">
+            <label>{activeTab === "register" ? "Requested Role" : "Assigned SOC Role"}</label>
+            <div className="input-wrapper">
+              <ShieldCheck size={16} className="input-icon" />
+              <select value={role} onChange={(e) => setRole(e.target.value)}>
+                {Object.values(ROLES).map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {activeTab === "login" && (
-            <>
-              <div className="auth-options-row">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  />
-                  <span>Remember session</span>
-                </label>
+            <div className="auth-options-row">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember this device</span>
+              </label>
 
-                <span className="mfa-badge">
-                  <ShieldCheck size={13} /> 2FA Encrypted
-                </span>
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", margin: "14px 0 6px 0" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    loginAsPreset("analyst");
-                    navigate("/dashboard");
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: "8px 10px",
-                    background: "rgba(6, 182, 212, 0.12)",
-                    border: "1px solid rgba(6, 182, 212, 0.3)",
-                    borderRadius: "8px",
-                    color: "#06b6d4",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <Shield size={14} /> Quick Demo Analyst
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    loginAsPreset("executive");
-                    navigate("/dashboard");
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: "8px 10px",
-                    background: "rgba(16, 185, 129, 0.12)",
-                    border: "1px solid rgba(16, 185, 129, 0.3)",
-                    borderRadius: "8px",
-                    color: "#10b981",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <ShieldCheck size={14} /> Quick Demo CISO
-                </button>
-              </div>
-            </>
+              <button
+                type="button"
+                className="forgot-link-btn"
+                onClick={() => setIsForgotPasswordOpen(true)}
+              >
+                Forgot Password?
+              </button>
+            </div>
           )}
 
-          <button type="submit" className="primary-button auth-submit-btn" disabled={isSubmitting}>
-            <span>{isSubmitting ? "Authenticating..." : activeTab === "login" ? "Access Cyber Command" : "Create SOC Account"}</span>
+          <button
+            type="submit"
+            className="primary-button auth-submit-btn"
+            disabled={isSubmitting}
+          >
+            <span>
+              {isSubmitting
+                ? "Authenticating..."
+                : activeTab === "login"
+                ? "Access Cyber Command"
+                : "Submit Registration"}
+            </span>
             <ArrowRight size={16} />
           </button>
         </form>
 
-        {/* FOOTER AUDIT NOTICE */}
-        <div className="auth-footer-notice">
-          <CheckCircle2 size={13} />
-          <span>HIPAA & DPDP Compliant 256-Bit Encrypted SOC Authorization</span>
+        {/* FOOTER NOTICE */}
+        <div className="auth-footer-notice minimal">
+          <span>Protected by multi-factor authentication and role-based access controls.</span>
         </div>
       </div>
+
+      {/* MODALS */}
+      <OTPModal
+        isOpen={isOTPModalOpen}
+        onClose={() => setIsOTPModalOpen(false)}
+        recipient={email}
+        onSuccess={() => navigate("/dashboard")}
+      />
+
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </div>
   );
 }

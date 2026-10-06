@@ -7,6 +7,9 @@ import { NotificationDrawer } from "../components/common/NotificationDrawer";
 import { ExplainModal } from "../components/common/ExplainButton";
 import { useApp } from "../context/AppContext";
 
+import { MedAIPanel } from "../components/ai/MedAIPanel";
+import { AIFloatingButton } from "../components/ai/AIFloatingButton";
+
 import { ErrorBoundary } from "../components/common/ErrorBoundary";
 
 function Layout() {
@@ -36,11 +39,14 @@ function Layout() {
         </section>
       </main>
 
-      {/* Global Modals & Drawers */}
+      {/* Global Modals, Drawers & AI Assistant */}
       <CommandPalette />
       <VoiceSOCModal />
       <NotificationDrawer />
       <ExplainModal />
+
+      <MedAIPanel />
+      <AIFloatingButton />
     </div>
   );
 }
